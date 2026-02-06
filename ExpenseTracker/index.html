@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-black min-h-screen flex items-center justify-center p-4">
+    <div class="bg-zinc-900 rounded-lg p-8 w-full max-w-lg">
+
+        <h1 class="text-white text-4xl font-bold text-center mb-8">Expense Tracker</h1>
+        
+        <form id="expenseForm" class="flex gap-3 mb-8">
+            <input 
+                type="text" 
+                id="expenseName" 
+                placeholder="Expense name" 
+                class="flex-1 bg-zinc-800 text-white placeholder-gray-500 px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+                required
+            >
+            <input 
+                type="number" 
+                id="expenseAmount" 
+                placeholder="Amount" 
+                step="10"
+                class="w-32 bg-zinc-800 text-white placeholder-gray-500 px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+                required
+            >
+            <button 
+                type="submit" 
+                class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+            >
+                Add Expense
+            </button>
+        </form>
+        
+        <h2 class="text-white text-3xl font-bold text-center mb-4">Expenses</h2>
+
+        <ul id="expenseList" class="mb-6 space-y-2 max-h-64 overflow-y-auto"></ul>
+        
+        <div class="text-white text-2xl font-bold text-center">
+            Total: $<span id="totalAmount">0.00</span>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
