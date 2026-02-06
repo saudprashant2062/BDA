@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Cart</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-black min-h-screen flex items-center justify-center p-4">
+    <div class="bg-zinc-900 rounded-lg p-8 w-full max-w-md">
+        <!-- Products Section -->
+        <h1 class="text-white text-3xl font-bold mb-6">Products</h1>
+        
+        <div id="productList" class="space-y-3 mb-8">
+            <div class="flex items-center justify-between bg-zinc-800 rounded-lg p-4">
+                <span class="text-gray-300">Product 1 - $29.99</span>
+                <button onclick="addToCart('Product 1', 29.99)" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-md transition-colors">
+                    Add to Cart
+                </button>
+            </div>
+            
+            <div class="flex items-center justify-between bg-zinc-800 rounded-lg p-4">
+                <span class="text-gray-300">Product 2 - $19.99</span>
+                <button onclick="addToCart('Product 2', 19.99)" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-md transition-colors">
+                    Add to Cart
+                </button>
+            </div>
+            
+            <div class="flex items-center justify-between bg-zinc-800 rounded-lg p-4">
+                <span class="text-gray-300">Product 3 - $49.99</span>
+                <button onclick="addToCart('Product 3', 49.99)" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-md transition-colors">
+                    Add to Cart
+                </button>
+            </div>
+        </div>
+        
+        <!-- Shopping Cart Section -->
+        <h2 class="text-white text-2xl font-bold mb-4">Shopping Cart</h2>
+        
+        <div id="cartContent" class="min-h-[100px]">
+            <p class="text-gray-400">Your cart is empty.</p>
+        </div>
+        
+        <div id="cartSummary" class="hidden">
+            <div id="cartItems" class="mb-4 space-y-2"></div>
+            
+            <div class="flex items-center justify-between mb-4">
+                <span class="text-white font-semibold">Total:</span>
+                <span id="totalAmount" class="text-white font-semibold">$0.00</span>
+            </div>
+            
+            <button onclick="checkout()" class="bg-purple-600 hover:bg-purple-700 text-white px-8 py-2 rounded-md transition-colors w-full">
+                Checkout
+            </button>
+        </div>
+    </div>
+ <script src="script.js"></script>
+</body>
+</html>
