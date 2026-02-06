@@ -1,3 +1,4 @@
+        document.addEventListener('DOMContentLoaded', () => {
         let cart = [];
 
         function addToCart(productName, price) {
@@ -42,3 +43,4 @@
                 updateCart();
             }
         }
+    });
