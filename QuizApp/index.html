@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Master - Test Your Knowledge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+ <style>
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in {
+        animation: fadeIn 0.5s ease-out;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    .pulse-animation {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    .timer-warning {
+        animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        color: #ef4444;
+    }
+    
+    /* Category Selection Styles */
+    .category-card {
+        position: relative;
+        transition: all 0.3s ease;
+    }
+    
+    .category-card.selected {
+        border-color: #6366f1 !important;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.3);
+        transform: scale(1.05);
+    }
+    
+    /* Difficulty Selection Styles */
+    .difficulty-btn {
+        position: relative;
+        transition: all 0.3s ease;
+    }
+    
+    .difficulty-btn.selected {
+        box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.2);
+        transform: scale(1.05);
+    }
+</style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    
+    <!-- Home Screen -->
+    <div id="homeScreen" class="container mx-auto px-4 py-8 max-w-4xl">
+        <div class="text-center mb-12 fade-in">
+            <h1 class="text-5xl font-bold text-indigo-900 mb-4">
+                <i class="fas fa-brain mr-3"></i>Quiz Master
+            </h1>
+            <p class="text-xl text-gray-600">Test your knowledge across multiple categories!</p>
+        </div>
+
+        <!-- Category Selection -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8 mb-8 fade-in">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Choose Your Category</h2>
+            <div id="categoryContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Categories will be inserted here by JS -->
+            </div>
+        </div>
+
+        <!-- Difficulty Selection -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8 mb-8 fade-in">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Select Difficulty</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button class="difficulty-btn bg-green-500 hover:bg-green-600 text-white font-semibold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-105" data-difficulty="easy">
+                    <i class="fas fa-smile mr-2"></i>Easy
+                </button>
+                <button class="difficulty-btn bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-105" data-difficulty="medium">
+                    <i class="fas fa-meh mr-2"></i>Medium
+                </button>
+                <button class="difficulty-btn bg-red-500 hover:bg-red-600 text-white font-semibold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-105" data-difficulty="hard">
+                    <i class="fas fa-fire mr-2"></i>Hard
+                </button>
+            </div>
+        </div>
+
+        <!-- Start Button -->
+        <div class="text-center fade-in">
+            <button id="startBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-12 rounded-full text-xl transition duration-300 transform hover:scale-110 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <i class="fas fa-play mr-2"></i>Start Quiz
+            </button>
+        </div>
+
+        <!-- Leaderboard Button -->
+        <div class="text-center mt-6 fade-in">
+            <button id="leaderboardBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-8 rounded-full transition duration-300 transform hover:scale-105">
+                <i class="fas fa-trophy mr-2"></i>View Leaderboard
+            </button>
+        </div>
+    </div>
+
+    <!-- Quiz Screen -->
+    <div id="quizScreen" class="hidden container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Quiz Header -->
+        <div class="bg-white rounded-2xl shadow-2xl p-6 mb-6 fade-in">
+            <div class="flex justify-between items-center flex-wrap gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="text-lg font-semibold text-gray-700">
+                        <i class="fas fa-list-ol mr-2 text-indigo-600"></i>
+                        Question <span id="currentQuestion">1</span> / <span id="totalQuestions">10</span>
+                    </div>
+                    <div class="text-lg font-semibold text-gray-700">
+                        <i class="fas fa-star mr-2 text-yellow-500"></i>
+                        Score: <span id="currentScore">0</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div id="timerDisplay" class="text-2xl font-bold text-indigo-600">
+                        <i class="fas fa-clock mr-2"></i>
+                        <span id="timeLeft">30</span>s
+                    </div>
+                    <button id="quitBtn" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300">
+                        <i class="fas fa-times mr-2"></i>Quit
+                    </button>
+                </div>
+            </div>
+            <!-- Progress Bar -->
+            <div class="mt-4 bg-gray-200 rounded-full h-3 overflow-hidden">
+                <div id="progressBar" class="bg-indigo-600 h-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Question Card -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8 mb-6 fade-in">
+            <div class="mb-2">
+                <span id="categoryBadge" class="inline-block bg-indigo-100 text-indigo-800 text-sm font-semibold px-4 py-2 rounded-full">
+                    Category
+                </span>
+                <span id="difficultyBadge" class="inline-block bg-green-100 text-green-800 text-sm font-semibold px-4 py-2 rounded-full ml-2">
+                    Easy
+                </span>
+            </div>
+            <h2 id="questionText" class="text-2xl font-bold text-gray-800 mb-8 leading-relaxed">
+                Question will appear here
+            </h2>
+            <div id="answersContainer" class="space-y-4">
+                <!-- Answer options will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Next Button -->
+        <div class="text-center fade-in">
+            <button id="nextBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-12 rounded-full text-xl transition duration-300 transform hover:scale-110 shadow-lg hidden">
+                Next Question <i class="fas fa-arrow-right ml-2"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Results Screen -->
+    <div id="resultsScreen" class="hidden container mx-auto px-4 py-8 max-w-4xl">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 text-center fade-in">
+            <div class="mb-8">
+                <i id="resultIcon" class="fas fa-trophy text-8xl text-yellow-500 mb-4"></i>
+                <h1 id="resultTitle" class="text-4xl font-bold text-gray-800 mb-4">Quiz Completed!</h1>
+                <p id="resultMessage" class="text-xl text-gray-600 mb-6"></p>
+            </div>
+
+            <!-- Score Display -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-indigo-50 rounded-xl p-6">
+                    <div class="text-4xl font-bold text-indigo-600" id="finalScore">0</div>
+                    <div class="text-gray-600 font-semibold mt-2">Final Score</div>
+                </div>
+                <div class="bg-green-50 rounded-xl p-6">
+                    <div class="text-4xl font-bold text-green-600" id="correctAnswers">0</div>
+                    <div class="text-gray-600 font-semibold mt-2">Correct Answers</div>
+                </div>
+                <div class="bg-red-50 rounded-xl p-6">
+                    <div class="text-4xl font-bold text-red-600" id="wrongAnswers">0</div>
+                    <div class="text-gray-600 font-semibold mt-2">Wrong Answers</div>
+                </div>
+            </div>
+
+            <!-- Review Section -->
+            <div class="text-left mb-8">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">Review Your Answers</h3>
+                <div id="reviewContainer" class="space-y-4 max-h-96 overflow-y-auto">
+                    <!-- Review items will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex flex-wrap justify-center gap-4">
+                <button id="retryBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full transition duration-300 transform hover:scale-105">
+                    <i class="fas fa-redo mr-2"></i>Retry Quiz
+                </button>
+                <button id="newQuizBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full transition duration-300 transform hover:scale-105">
+                    <i class="fas fa-play mr-2"></i>New Quiz
+                </button>
+                <button id="viewLeaderboardBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-full transition duration-300 transform hover:scale-105">
+                    <i class="fas fa-trophy mr-2"></i>Leaderboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaderboard Screen -->
+    <div id="leaderboardScreen" class="hidden container mx-auto px-4 py-8 max-w-4xl">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 fade-in">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-gray-800 mb-2">
+                    <i class="fas fa-trophy text-yellow-500 mr-3"></i>Leaderboard
+                </h1>
+                <p class="text-gray-600">Top performers across all categories</p>
+            </div>
+
+            <!-- Category Filter -->
+            <div class="mb-6">
+                <label class="block text-gray-700 font-semibold mb-2">Filter by Category:</label>
+                <select id="leaderboardFilter" class="w-full md:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="all">All Categories</option>
+                </select>
+            </div>
+
+            <!-- Leaderboard Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-indigo-600 text-white">
+                        <tr>
+                            <th class="py-3 px-4 text-left">Rank</th>
+                            <th class="py-3 px-4 text-left">Player</th>
+                            <th class="py-3 px-4 text-left">Category</th>
+                            <th class="py-3 px-4 text-left">Difficulty</th>
+                            <th class="py-3 px-4 text-left">Score</th>
+                            <th class="py-3 px-4 text-left">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboardBody" class="divide-y divide-gray-200">
+                        <!-- Leaderboard entries will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Clear Leaderboard -->
+            <div class="mt-6 flex justify-between items-center">
+                <button id="closeLeaderboardBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-6 rounded-lg transition duration-300">
+                    <i class="fas fa-arrow-left mr-2"></i>Back
+                </button>
+                <button id="clearLeaderboardBtn" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-6 rounded-lg transition duration-300">
+                    <i class="fas fa-trash mr-2"></i>Clear Leaderboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/data.js"></script>
+    <script src="js/quiz.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
