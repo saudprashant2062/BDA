@@ -1,0 +1,118 @@
+Step 1: Start Hadoop Services
+Open Terminal and execute:
+start-dfs.sh
+start-yarn.sh
+Verify services:
+jps
+Expected Output:
+NameNode
+DataNode
+SecondaryNameNode
+ResourceManager
+NodeManager
+
+mkdir hadoop_lab
+
+Step 2: Create Input Directory in HDFS
+hdfs dfs -mkdir -p /wordfreq/input
+
+Step 3: Create Input File (Local System)
+nano input.txt
+
+Sample Content:
+hadoop is big data framework
+hadoop processes big data
+big data is powerful
+Save and exit.
+
+Step 4: Upload File to HDFS
+hdfs dfs -put input.txt /wordfreq/input
+Verify:
+hdfs dfs -ls /wordfreq/input
+
+Step 5: Write MapReduce Java Program
+nano WordCount.java
+
+Java Program
+import java.io.IOException;
+import java.util.StringTokenizer;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class WordCount {
+
+public static class MapperClass
+extends Mapper&lt;Object, Text, Text, IntWritable&gt; {
+
+private final static IntWritable one = new IntWritable(1);
+private Text word = new Text();
+
+public void map(Object key, Text value, Context context)
+throws IOException, InterruptedException {
+
+StringTokenizer itr = new StringTokenizer(value.toString());
+while (itr.hasMoreTokens()) {
+word.set(itr.nextToken());
+context.write(word, one);
+}
+}
+}
+
+public static class ReducerClass
+extends Reducer&lt;Text, IntWritable, Text, IntWritable&gt; {
+
+public void reduce(Text key, Iterable&lt;IntWritable&gt; values,
+Context context)
+throws IOException, InterruptedException {
+
+int sum = 0;
+for (IntWritable val : values) {
+sum += val.get();
+}
+context.write(key, new IntWritable(sum));
+}
+}
+
+public static void main(String[] args) throws Exception {
+
+Configuration conf = new Configuration();
+Job job = Job.getInstance(conf, &quot;Word Frequency Count&quot;);
+
+job.setJarByClass(WordCount.class);
+job.setMapperClass(MapperClass.class);
+job.setReducerClass(ReducerClass.class);
+
+job.setOutputKeyClass(Text.class);
+job.setOutputValueClass(IntWritable.class);
+
+FileInputFormat.addInputPath(job, new Path(args[0]));
+FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+System.exit(job.waitForCompletion(true) ? 0 : 1);
+}
+}
+
+Step 6: Compile Java Program
+javac -classpath $(hadoop classpath) -d . WordCount.java
+Verify class files:
+ls
+
+Step 7: Create JAR File
+jar -cvf wordcount.jar WordCount*.class
+
+Step 8: Execute MapReduce Job
+Remove old output (if exists):
+hdfs dfs -rm -r /wordfreq/output
+Run program:
+hadoop jar wordcount.jar WordCount /wordfreq/input /wordfreq/output
+
+Step 9: View Output
+hdfs dfs -cat /wordfreq/output/part-r-00000
