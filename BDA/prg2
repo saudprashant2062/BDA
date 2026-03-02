@@ -1,3 +1,32 @@
+# ================================
+# HADOOP MAPREDUCE – WORDCOUNT (ALL-IN-ONE)
+# ================================
+
+# 1. Start Hadoop
+start-dfs.sh
+start-yarn.sh
+jps
+
+# 2. Create Working Directory
+mkdir hadoop_lab
+cd hadoop_lab
+
+# 3. Create HDFS Input Directory
+hdfs dfs -mkdir -p /wordfreq/input
+
+# 4. Create Input File
+cat << EOF > input.txt
+hadoop is big data framework
+hadoop processes big data
+big data is powerful
+EOF
+
+# 5. Upload File to HDFS
+hdfs dfs -put input.txt /wordfreq/input
+hdfs dfs -ls /wordfreq/input
+
+# 6. Create Java Program
+cat << EOF > WordCount.java
 import java.io.IOException;
 import java.util.StringTokenizer;
 
@@ -13,7 +42,6 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 public class WordCount {
 
-    // -------- MAPPER --------
     public static class MapperClass
             extends Mapper<Object, Text, Text, IntWritable> {
 
@@ -24,7 +52,6 @@ public class WordCount {
                 throws IOException, InterruptedException {
 
             StringTokenizer itr = new StringTokenizer(value.toString());
-
             while (itr.hasMoreTokens()) {
                 word.set(itr.nextToken());
                 context.write(word, one);
@@ -32,7 +59,6 @@ public class WordCount {
         }
     }
 
-    // -------- REDUCER --------
     public static class ReducerClass
             extends Reducer<Text, IntWritable, Text, IntWritable> {
 
@@ -41,16 +67,13 @@ public class WordCount {
                 throws IOException, InterruptedException {
 
             int sum = 0;
-
             for (IntWritable val : values) {
                 sum += val.get();
             }
-
             context.write(key, new IntWritable(sum));
         }
     }
 
-    // -------- DRIVER --------
     public static void main(String[] args) throws Exception {
 
         Configuration conf = new Configuration();
@@ -69,3 +92,17 @@ public class WordCount {
         System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }
+EOF
+
+# 7. Compile
+javac -classpath $(hadoop classpath) -d . WordCount.java
+
+# 8. Create JAR
+jar -cvf wordcount.jar WordCount*.class
+
+# 9. Run Job
+hdfs dfs -rm -r /wordfreq/output
+hadoop jar wordcount.jar WordCount /wordfreq/input /wordfreq/output
+
+# 10. View Output
+hdfs dfs -cat /wordfreq/output/part-r-00000

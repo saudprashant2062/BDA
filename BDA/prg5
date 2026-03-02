@@ -1,20 +1,30 @@
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+# =========================================
+# HADOOP MAPREDUCE – MATRIX MULTIPLICATION (ALL-IN-ONE)
+# =========================================
 
+# 1. Start Hadoop
+start-dfs.sh
+start-yarn.sh
+jps
+
+# 2. Create Working Directory
+mkdir matrix_lab
+cd matrix_lab
+
+# 3. Create Java Program
+cat << EOF > MatrixMultiply.java
+import java.io.IOException;
+import java.util.*;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 public class MatrixMultiply {
 
-    public static class MatrixMapper 
-            extends Mapper<Object, Text, Text, Text> {
+    public static class MatrixMapper extends Mapper<Object, Text, Text, Text> {
 
         public void map(Object key, Text value, Context context)
                 throws IOException, InterruptedException {
@@ -28,24 +38,19 @@ public class MatrixMultiply {
 
             if (matrix.equals("A")) {
                 for (int i = 0; i < 2; i++) {
-                    context.write(
-                        new Text(row + "," + i),
-                        new Text("A," + col + "," + val)
-                    );
+                    context.write(new Text(row + "," + i),
+                            new Text("A," + col + "," + val));
                 }
             } else {
                 for (int i = 0; i < 2; i++) {
-                    context.write(
-                        new Text(i + "," + col),
-                        new Text("B," + row + "," + val)
-                    );
+                    context.write(new Text(i + "," + col),
+                            new Text("B," + row + "," + val));
                 }
             }
         }
     }
 
-    public static class MatrixReducer 
-            extends Reducer<Text, Text, Text, Text> {
+    public static class MatrixReducer extends Reducer<Text, Text, Text, Text> {
 
         public void reduce(Text key, Iterable<Text> values, Context context)
                 throws IOException, InterruptedException {
@@ -57,15 +62,11 @@ public class MatrixMultiply {
                 String[] parts = val.toString().split(",");
 
                 if (parts[0].equals("A")) {
-                    mapA.put(
-                        Integer.parseInt(parts[1]),
-                        Integer.parseInt(parts[2])
-                    );
+                    mapA.put(Integer.parseInt(parts[1]),
+                            Integer.parseInt(parts[2]));
                 } else {
-                    mapB.put(
-                        Integer.parseInt(parts[1]),
-                        Integer.parseInt(parts[2])
-                    );
+                    mapB.put(Integer.parseInt(parts[1]),
+                            Integer.parseInt(parts[2]));
                 }
             }
 
@@ -99,3 +100,37 @@ public class MatrixMultiply {
         System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }
+EOF
+
+# 4. Compile
+javac -classpath $(hadoop classpath) -d . MatrixMultiply.java
+
+# 5. Create JAR
+jar -cvf matrix.jar *
+
+# 6. Create HDFS Input Directory
+hdfs dfs -mkdir -p /matrix/input
+
+# 7. Create Input File
+cat << EOF > matrix.txt
+A,0,0,1
+A,0,1,2
+A,1,0,3
+A,1,1,4
+B,0,0,5
+B,0,1,6
+B,1,0,7
+B,1,1,8
+EOF
+
+# 8. Upload File
+hdfs dfs -put matrix.txt /matrix/input
+
+# 9. Verify Upload
+hdfs dfs -ls /matrix/input
+
+# 10. Run Job
+hadoop jar matrix.jar MatrixMultiply /matrix/input /matrix/output
+
+# 11. View Output
+hdfs dfs -cat /matrix/output/part-r-00000

@@ -1,5 +1,35 @@
-import java.io.IOException;
+# =========================================
+# HADOOP MAPREDUCE – MAX TEMPERATURE (COMPLETE SINGLE BLOCK)
+# =========================================
 
+# 1. Start Hadoop
+start-dfs.sh
+start-yarn.sh
+jps
+
+# 2. Create Input File
+cat << EOF > temperature.txt
+2018,32
+2018,35
+2018,30
+2019,28
+2019,40
+2020,36
+2020,38
+EOF
+
+# 3. Create HDFS Directory
+hdfs dfs -mkdir -p /maxtemp/input
+
+# 4. Upload File
+hdfs dfs -put -f temperature.txt /maxtemp/input
+
+# 5. Verify Upload
+hdfs dfs -ls /maxtemp/input
+
+# 6. Create Java Program
+cat << EOF > MaxTemperature.java
+import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -12,7 +42,6 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 public class MaxTemperature {
 
-    // -------- MAPPER --------
     public static class TempMapper
             extends Mapper<Object, Text, Text, IntWritable> {
 
@@ -27,11 +56,11 @@ public class MaxTemperature {
         }
     }
 
-    // -------- REDUCER --------
     public static class TempReducer
             extends Reducer<Text, IntWritable, Text, IntWritable> {
 
-        public void reduce(Text key, Iterable<IntWritable> values, Context context)
+        public void reduce(Text key, Iterable<IntWritable> values,
+                           Context context)
                 throws IOException, InterruptedException {
 
             int maxTemp = Integer.MIN_VALUE;
@@ -44,7 +73,6 @@ public class MaxTemperature {
         }
     }
 
-    // -------- DRIVER --------
     public static void main(String[] args) throws Exception {
 
         Configuration conf = new Configuration();
@@ -63,3 +91,24 @@ public class MaxTemperature {
         System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }
+EOF
+
+# 7. Compile
+javac -classpath `hadoop classpath` MaxTemperature.java
+
+# 8. Create JAR
+jar cf maxtemp.jar MaxTemperature*.class
+
+# 9. Remove Old Output (if exists)
+hdfs dfs -rm -r /maxtemp/output
+
+# 10. Run Job
+hadoop jar maxtemp.jar MaxTemperature /maxtemp/input /maxtemp/output
+
+# 11. View Output
+hdfs dfs -cat /maxtemp/output/part-r-00000
+
+# Expected Output:
+# 2018 35
+# 2019 40
+# 2020 38
