@@ -1,30 +1,5 @@
-Step 1:
-start-dfs.sh
-start-yarn.sh
-Jps
-Step 2:
-nano temperature.txt
-Add Data:
-2018,32
-2018,35
-2018,30
-2019,28
-2019,40
-2020,36
-2020,38
-Cntrl + O , Enter , Cntrl + X
-Step 3:
-hdfs dfs -mkdir -p /maxtemp/input
-Step 4:
-hdfs dfs -put -f temperature.txt /maxtemp/input
-Step 5:
-Verify:
-hdfs dfs -ls /maxtemp/input
-Step 6:
-nano MaxTemperature.java
-Add Java code:
-
 import java.io.IOException;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -34,60 +9,57 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
 public class MaxTemperature {
-// -------- MAPPER --------
-public static class TempMapper
-extends Mapper&lt;Object, Text, Text, IntWritable&gt; {
-public void map(Object key, Text value, Context context)
-throws IOException, InterruptedException {
-String[] parts = value.toString().split(&quot;,&quot;);
-String year = parts[0];
-int temp = Integer.parseInt(parts[1]);
-context.write(new Text(year), new IntWritable(temp));
-}
-}
-// -------- REDUCER --------
-public static class TempReducer
-extends Reducer&lt;Text, IntWritable, Text, IntWritable&gt; {
-public void reduce(Text key, Iterable&lt;IntWritable&gt; values, Context context)
-throws IOException, InterruptedException {
-int maxTemp = Integer.MIN_VALUE;
-for (IntWritable val : values) {
-maxTemp = Math.max(maxTemp, val.get());
-}
-context.write(key, new IntWritable(maxTemp));
-}
 
-}
-// -------- DRIVER --------
-public static void main(String[] args) throws Exception {
-Configuration conf = new Configuration();
-Job job = Job.getInstance(conf, &quot;Maximum Temperature&quot;);
-job.setJarByClass(MaxTemperature.class);
-job.setMapperClass(TempMapper.class);
-job.setReducerClass(TempReducer.class);
-job.setOutputKeyClass(Text.class);
-job.setOutputValueClass(IntWritable.class);
-FileInputFormat.addInputPath(job, new Path(args[0]));
-FileOutputFormat.setOutputPath(job, new Path(args[1]));
-System.exit(job.waitForCompletion(true) ? 0 : 1);
-}
-}
+    // -------- MAPPER --------
+    public static class TempMapper
+            extends Mapper<Object, Text, Text, IntWritable> {
 
-Ctrl + O, Enter, Ctrl + X
-Step 7:
-javac -classpath `hadoop classpath` MaxTemperature.java
-Step 8:
-jar cf maxtemp.jar MaxTemperature*.class
-Step 9:
-Verify:
-ls
-Step 10:
-hdfs dfs -rm -r /maxtemp/output
-Step 11:
+        public void map(Object key, Text value, Context context)
+                throws IOException, InterruptedException {
 
-hadoop jar maxtemp.jar MaxTemperature /maxtemp/input /maxtemp/output
-Verify:
-Jar should be successfully executed
-Step 12:
-hdfs dfs -cat /maxtemp/output/part-r-00000
+            String[] parts = value.toString().split(",");
+            String year = parts[0];
+            int temp = Integer.parseInt(parts[1]);
+
+            context.write(new Text(year), new IntWritable(temp));
+        }
+    }
+
+    // -------- REDUCER --------
+    public static class TempReducer
+            extends Reducer<Text, IntWritable, Text, IntWritable> {
+
+        public void reduce(Text key, Iterable<IntWritable> values, Context context)
+                throws IOException, InterruptedException {
+
+            int maxTemp = Integer.MIN_VALUE;
+
+            for (IntWritable val : values) {
+                maxTemp = Math.max(maxTemp, val.get());
+            }
+
+            context.write(key, new IntWritable(maxTemp));
+        }
+    }
+
+    // -------- DRIVER --------
+    public static void main(String[] args) throws Exception {
+
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "Maximum Temperature");
+
+        job.setJarByClass(MaxTemperature.class);
+        job.setMapperClass(TempMapper.class);
+        job.setReducerClass(TempReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}

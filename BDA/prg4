@@ -1,14 +1,5 @@
-Step 1:
-start-dfs.sh
-start-yarn.sh
-jps
-Step 2:
-mkdir grade_lab
-cd grade_lab
-Step 3:
-nano GradeMR.java
-Add this code:
 import java.io.IOException;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -17,67 +8,62 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
 public class GradeMR {
-public static class GradeMapper extends Mapper&lt;Object, Text, Text, Text&gt; {
-public void map(Object key, Text value, Context context)
-throws IOException, InterruptedException {
-String line = value.toString();
-String[] parts = line.split(&quot;,&quot;);
-String name = parts[0];
-int marks = Integer.parseInt(parts[1]);
-String grade;
 
-if (marks &gt;= 80) grade = &quot;A&quot;;
-else if (marks &gt;= 60) grade = &quot;B&quot;;
-else if (marks &gt;= 50) grade = &quot;C&quot;;
-else grade = &quot;D&quot;;
-context.write(new Text(name), new Text(grade));
-}
-}
-public static class GradeReducer extends Reducer&lt;Text, Text, Text, Text&gt; {
-public void reduce(Text key, Iterable&lt;Text&gt; values, Context context)
-throws IOException, InterruptedException {
-for (Text val : values) {
-context.write(key, val);
-}
-}
-}
-public static void main(String[] args) throws Exception {
-Configuration conf = new Configuration();
-Job job = Job.getInstance(conf, &quot;Student Grade&quot;);
-job.setJarByClass(GradeMR.class);
-job.setMapperClass(GradeMapper.class);
-job.setReducerClass(GradeReducer.class);
-job.setOutputKeyClass(Text.class);
-job.setOutputValueClass(Text.class);
-FileInputFormat.addInputPath(job, new Path(args[0]));
-FileOutputFormat.setOutputPath(job, new Path(args[1]));
-System.exit(job.waitForCompletion(true) ? 0 : 1);
-}
-}
+    public static class GradeMapper
+            extends Mapper<Object, Text, Text, Text> {
 
-Ctrl + O , Enter , Ctrl + X
+        public void map(Object key, Text value, Context context)
+                throws IOException, InterruptedException {
 
-Step 4:
-javac -classpath $(hadoop classpath) -d . GradeMR.java
-Step 5:
-jar -cvf grade.jar *
-Step 6:
-hdfs dfs -mkdir -p /grade/input
-Step 7:
-nano students.txt
-Add the data:
-Ravi,85
-Anita,72
-Rahul,60
-Priya,55
-Kiran,90
-Ctrl + O, Enter , Ctrl + X
-Step 8:
-hdfs dfs -put students.txt /grade/input
-Verify:
-hdfs dfs -ls /grade/input
-Step 9:
-hadoop jar grade.jar GradeMR /grade/input /grade/output
-Step 10:
-hdfs dfs -cat /grade/output/part-r-00000
+            String line = value.toString();
+            String[] parts = line.split(",");
+
+            String name = parts[0];
+            int marks = Integer.parseInt(parts[1]);
+            String grade;
+
+            if (marks >= 80)
+                grade = "A";
+            else if (marks >= 60)
+                grade = "B";
+            else if (marks >= 50)
+                grade = "C";
+            else
+                grade = "D";
+
+            context.write(new Text(name), new Text(grade));
+        }
+    }
+
+    public static class GradeReducer
+            extends Reducer<Text, Text, Text, Text> {
+
+        public void reduce(Text key, Iterable<Text> values, Context context)
+                throws IOException, InterruptedException {
+
+            for (Text val : values) {
+                context.write(key, val);
+            }
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "Student Grade");
+
+        job.setJarByClass(GradeMR.class);
+        job.setMapperClass(GradeMapper.class);
+        job.setReducerClass(GradeReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(Text.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}

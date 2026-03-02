@@ -1,134 +1,101 @@
-Step 1:
-Start-dfs.sh
-Start-yarn.sh
-Jps
-
-Step 2:
-mkdir matrix_lab
-cd matrix_lab
-
-Step 3:
-nano MatrixMultiply.java
-Add the code:
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.*;
-import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 public class MatrixMultiply {
 
-public static class MatrixMapper extends Mapper&lt;Object, Text, Text, Text&gt; {
+    public static class MatrixMapper 
+            extends Mapper<Object, Text, Text, Text> {
 
-public void map(Object key, Text value, Context context)
-throws IOException, InterruptedException {
+        public void map(Object key, Text value, Context context)
+                throws IOException, InterruptedException {
 
-String[] parts = value.toString().split(&quot;,&quot;);
+            String[] parts = value.toString().split(",");
 
-String matrix = parts[0];
-int row = Integer.parseInt(parts[1]);
-int col = Integer.parseInt(parts[2]);
-String val = parts[3];
+            String matrix = parts[0];
+            int row = Integer.parseInt(parts[1]);
+            int col = Integer.parseInt(parts[2]);
+            String val = parts[3];
 
-if (matrix.equals(&quot;A&quot;)) {
-for (int i = 0; i &lt; 2; i++) {
-context.write(new Text(row + &quot;,&quot; + i),
-new Text(&quot;A,&quot; + col + &quot;,&quot; + val));
+            if (matrix.equals("A")) {
+                for (int i = 0; i < 2; i++) {
+                    context.write(
+                        new Text(row + "," + i),
+                        new Text("A," + col + "," + val)
+                    );
+                }
+            } else {
+                for (int i = 0; i < 2; i++) {
+                    context.write(
+                        new Text(i + "," + col),
+                        new Text("B," + row + "," + val)
+                    );
+                }
+            }
+        }
+    }
+
+    public static class MatrixReducer 
+            extends Reducer<Text, Text, Text, Text> {
+
+        public void reduce(Text key, Iterable<Text> values, Context context)
+                throws IOException, InterruptedException {
+
+            Map<Integer, Integer> mapA = new HashMap<>();
+            Map<Integer, Integer> mapB = new HashMap<>();
+
+            for (Text val : values) {
+                String[] parts = val.toString().split(",");
+
+                if (parts[0].equals("A")) {
+                    mapA.put(
+                        Integer.parseInt(parts[1]),
+                        Integer.parseInt(parts[2])
+                    );
+                } else {
+                    mapB.put(
+                        Integer.parseInt(parts[1]),
+                        Integer.parseInt(parts[2])
+                    );
+                }
+            }
+
+            int result = 0;
+
+            for (int k : mapA.keySet()) {
+                if (mapB.containsKey(k)) {
+                    result += mapA.get(k) * mapB.get(k);
+                }
+            }
+
+            context.write(key, new Text(String.valueOf(result)));
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "Matrix Multiplication");
+
+        job.setJarByClass(MatrixMultiply.class);
+        job.setMapperClass(MatrixMapper.class);
+        job.setReducerClass(MatrixReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(Text.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
 }
-} else {
-for (int i = 0; i &lt; 2; i++) {
-context.write(new Text(i + &quot;,&quot; + col),
-new Text(&quot;B,&quot; + row + &quot;,&quot; + val));
-}
-}
-}
-}
-
-public static class MatrixReducer extends Reducer&lt;Text, Text, Text, Text&gt; {
-
-public void reduce(Text key, Iterable&lt;Text&gt; values, Context context)
-throws IOException, InterruptedException {
-
-Map&lt;Integer, Integer&gt; mapA = new HashMap&lt;&gt;();
-Map&lt;Integer, Integer&gt; mapB = new HashMap&lt;&gt;();
-
-for (Text val : values) {
-String[] parts = val.toString().split(&quot;,&quot;);
-
-if (parts[0].equals(&quot;A&quot;)) {
-mapA.put(Integer.parseInt(parts[1]),
-Integer.parseInt(parts[2]));
-} else {
-mapB.put(Integer.parseInt(parts[1]),
-Integer.parseInt(parts[2]));
-}
-}
-
-int result = 0;
-
-for (int k : mapA.keySet()) {
-if (mapB.containsKey(k)) {
-result += mapA.get(k) * mapB.get(k);
-}
-}
-
-context.write(key, new Text(String.valueOf(result)));
-}
-}
-
-public static void main(String[] args) throws Exception {
-
-Configuration conf = new Configuration();
-Job job = Job.getInstance(conf, &quot;Matrix Multiplication&quot;);
-
-job.setJarByClass(MatrixMultiply.class);
-job.setMapperClass(MatrixMapper.class);
-job.setReducerClass(MatrixReducer.class);
-
-job.setOutputKeyClass(Text.class);
-
-job.setOutputValueClass(Text.class);
-
-FileInputFormat.addInputPath(job, new Path(args[0]));
-FileOutputFormat.setOutputPath(job, new Path(args[1]));
-
-System.exit(job.waitForCompletion(true) ? 0 : 1);
-}
-}
-
-Step 4:
-javac -classpath $(hadoop classpath) -d . MatrixMultiply.java
-
-Step 5:
-jar -cvf matrix.jar *
-
-Step 6:
-hdfs dfs -mkdir -p /matrix/input
-
-Step 7:
-nano matrix.txt
-
-Add the data:
-A,0,0,1
-A,0,1,2
-A,1,0,3
-A,1,1,4
-B,0,0,5
-B,0,1,6
-B,1,0,7
-B,1,1,8
-
-Step 8:
-hdfs dfs -put matrix.txt /matrix/input
-
-Step 9:
-hdfs dfs -ls /matrix/input
-
-Step 10:
-hadoop jar matrix.jar MatrixMultiply /matrix/input /matrix/output
-
-Step 11:
-hdfs dfs -cat /matrix/output/part-r-00000
